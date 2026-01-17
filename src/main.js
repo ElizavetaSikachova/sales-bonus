@@ -168,9 +168,7 @@ function analyzeSalesData(data, options) {
         const topProductsArray = Array.from(seller.top_products.entries())
             .map(([sku, quantity]) => ({
                 sku,
-                quantity,
-                product_name: productIndex[sku]?.name || sku,
-                category: productIndex[sku]?.category || 'Неизвестно'
+                quantity
             }))
             // Сортировка по количеству (убывание)
             .sort((a, b) => b.quantity - a.quantity)

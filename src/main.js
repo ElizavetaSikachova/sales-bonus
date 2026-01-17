@@ -83,62 +83,57 @@ function analyzeSalesData(data, options) {
 
     // @TODO: Расчет выручки и прибыли для каждого продавца
     data.purchase_records.forEach(record => {
-    const seller = sellerIndex[record.seller_id];
-    
-    // Проверяем, что продавец найден
-    if (!seller) {
-        console.warn(`Продавец с ID ${record.seller_id} не найден`);
-        return;
-    }
-    
-    seller.sales_count += 1;
-    let recordRevenue = 0;
-    
-    // Расчёт прибыли для каждого товара
-    record.items.forEach(item => {
-        const product = productIndex[item.sku];
+        const seller = sellerIndex[record.seller_id];
         
-        // Проверяем, что товар найден
-        if (!product) {
-            console.warn(`Товар с SKU ${item.sku} не найден`);
+        // Проверяем, что продавец найден
+        if (!seller) {
+            console.warn(`Продавец с ID ${record.seller_id} не найден, чек ${record.id} будет пропущен`);
             return;
         }
         
-        const cost = product.purchase_price * item.quantity;
+        seller.sales_count += 1;
         
-        // Посчитать выручку с учётом скидки
-        const purchaseData = {
-            sale_price: item.sale_price,
-            quantity: item.quantity,
-            discount: item.discount
-        };
+        seller.revenue += record.total_amount;
         
-        // Выручка по конкретному товару (с учетом скидки)
-        const itemRevenue = calculateRevenue(purchaseData, product);
-        
-        // Добавляем к общей выручке по чеку
-        recordRevenue += itemRevenue;
-        
-        // Посчитать прибыль: выручка минус себестоимость
-        const profit = itemRevenue - cost;
-        
-        // Увеличить общую накопленную прибыль у продавца
-        seller.profit += profit;
-        
-        // Учёт количества проданных товаров
-        if (!seller.products_sold[item.sku]) {
-            seller.products_sold[item.sku] = 0;
-        }
-        // По артикулу товара увеличить его проданное количество у продавца
-        seller.products_sold[item.sku] += item.quantity;
-        
-        // Обновляем топ товаров в Map (суммируем количество)
-        const currentCount = seller.top_products.get(item.sku) || 0;
-        seller.top_products.set(item.sku, currentCount + item.quantity);
+        // Расчёт прибыли для каждого товара
+        record.items.forEach(item => {
+            const product = productIndex[item.sku];
+            
+            // Проверяем, что товар найден
+            if (!product) {
+                console.warn(`Товар с SKU ${item.sku} не найден в чеке ${record.id}`);
+                return;
+            }
+            
+            // Посчитать себестоимость
+            const cost = product.purchase_price * item.quantity;
+            
+            // Посчитать выручку с учётом скидки
+            const purchaseData = {
+                sale_price: item.sale_price,
+                quantity: item.quantity,
+                discount: item.discount
+            };
+            
+            const revenue = calculateRevenue(purchaseData, product);
+            
+            // Посчитать прибыль
+            const profit = revenue - cost;
+            
+            // Увеличить общую накопленную прибыль у продавца
+            seller.profit += profit;
+            
+            // Учёт количества проданных товаров
+            if (!seller.products_sold[item.sku]) {
+                seller.products_sold[item.sku] = 0;
+            }
+            // По артикулу товара увеличить его проданное количество у продавца
+            seller.products_sold[item.sku] += item.quantity;
+            
+            // Обновляем топ товаров
+            const currentCount = seller.top_products.get(item.sku) || 0;
+            seller.top_products.set(item.sku, currentCount + item.quantity);
         });
-    
-        // Обновляем общую выручку продавца (сумма выручки всех продаж с учетом скидки)
-        seller.revenue += recordRevenue;
     });
 
     // @TODO: Сортировка продавцов по прибыли
